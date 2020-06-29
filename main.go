@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/igorbrites/neptune/github"
@@ -11,22 +12,21 @@ import (
 
 func main() {
 	var plan terraform.Plan
-	parseTerraformFlags(&plan)
-
 	var pr github.PullRequest
-	parsePullRequestFlags(&pr)
+	parseFlags(&plan, &pr)
 
-	err := plan.Run()
-	check(err)
+	plan.Run()
 
 	fmt.Println(plan.Output)
 
-	if plan.HasChanges {
-		pr.Comment(plan.ProcessedOutput())
+	pr.Comment(plan)
+
+	if plan.Type == terraform.Error {
+		os.Exit(1)
 	}
 }
 
-func parseTerraformFlags(plan *terraform.Plan) {
+func parseFlags(plan *terraform.Plan, pr *github.PullRequest) {
 	flag.StringVar(&plan.Path, "path", "terraform", "Path to the \"terraform\" binnary. Be sure that it is on your $PATH.")
 	flag.BoolVar(&plan.CompactWarnings, "compact-warnings", false, "If Terraform produces any warnings that are not accompanied by errors, show them in a more compact form that includes only the summary messages.")
 	flag.BoolVar(&plan.Destroy, "destroy", false, "If set, a plan will be generated to destroy all resources managed by the given configuration and state.")
@@ -41,13 +41,11 @@ func parseTerraformFlags(plan *terraform.Plan) {
 	flag.Var(&plan.Targets, "target", "Resource to target. Operation will be limited to this resource and its dependencies. This flag can be used multiple times.")
 	flag.Var(&plan.Vars, "var", "Set a variable in the Terraform configuration. This flag can be set multiple times.")
 	flag.Var(&plan.VarFiles, "var-file", "Set variables in the Terraform configuration from a file. If \"terraform.tfvars\" or any \".auto.tfvars\" files are present, they will be automatically loaded.")
-	flag.Parse()
-}
 
-func parsePullRequestFlags(pr *github.PullRequest) {
 	flag.StringVar(&pr.Owner, "owner", "", "Name of the owner of the repo")
 	flag.StringVar(&pr.Repo, "repo", "", "Repo name")
 	flag.IntVar(&pr.Number, "pr-number", 0, "Pull Request number")
+
 	flag.Parse()
 }
 

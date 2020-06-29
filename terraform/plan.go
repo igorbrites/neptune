@@ -26,28 +26,38 @@ func (v *MultipleOptions) Empty() bool {
 	return len(v.Options) == 0
 }
 
+type PlanType int
+
+const (
+	NoChanges PlanType = iota
+	Error
+	Changed
+)
+
 // Plan struct is the representation of the `terraform plan` command
 type Plan struct {
-	Path string
-	Output string
-	HasChanges bool
+	Path            string
+	Output          string
+	Error           string
+	Type            PlanType
+	Workspace       string
 	CompactWarnings bool
-	Destroy bool
-	Input bool
-	Lock bool
-	LockTimeout time.Duration
-	NoColor bool
-	Out string
-	Parallelism int
-	Refresh bool
-	State string
-	Targets MultipleOptions
-	Vars MultipleOptions
-	VarFiles MultipleOptions
+	Destroy         bool
+	Input           bool
+	Lock            bool
+	LockTimeout     time.Duration
+	NoColor         bool
+	Out             string
+	Parallelism     int
+	Refresh         bool
+	State           string
+	Targets         MultipleOptions
+	Vars            MultipleOptions
+	VarFiles        MultipleOptions
 }
 
 // Run runs `terraform plan` with the given arguments
-func (plan *Plan) Run() error {
+func (plan *Plan) Run() {
 	if !IsCommandAvailable(plan.Path) {
 		panic("Terraform not found! Be sure to put it on your $PATH.")
 	}
@@ -55,16 +65,29 @@ func (plan *Plan) Run() error {
 	cmd := plan.BuildCommand()
 	fmt.Printf("Running command \"%s %s\"\n", plan.Path, strings.Join(cmd, " "))
 
+	stdout, _, _ := RunCommand(plan.Path, "workspace", "show")
+	plan.Workspace = strings.TrimSpace(stdout)
+
 	stdout, stderr, exitCode := RunCommand(plan.Path, cmd...)
 
-	if exitCode == 1 {
-		return fmt.Errorf("Plan failed! Here is the message from Terraform:\n\n%s", stderr)
+	switch exitCode {
+	case 0:
+		plan.Type = NoChanges
+		break
+	case 1:
+		plan.Type = Error
+		break
+	case 2:
+		plan.Type = Changed
+		break
 	}
 
-	plan.HasChanges = exitCode == 2
 	plan.Output = stdout
+	plan.Error = stderr
+}
 
-	return nil
+func (plan *Plan) ProcessedError() string {
+	return strings.TrimSpace(stripansi.Strip(plan.Error))
 }
 
 func (plan *Plan) ProcessedOutput() string {
@@ -86,7 +109,7 @@ func (plan *Plan) ProcessedOutput() string {
 	re = regexp.MustCompile(`(?m)^( +)([\+|\-|\~])`)
 	output = re.ReplaceAllString(output, "$2$1")
 
-	// Gives emphasys on what will hapen to the resource (will be purple and bold) 
+	// Gives emphasys on what will hapen to the resource (will be purple and bold)
 	re = regexp.MustCompile(`(?m)^\#(.*)`)
 	output = re.ReplaceAllString(output, "@@ #$1 @@")
 
@@ -123,7 +146,7 @@ func (t Plan) BuildCommand() []string {
 	}
 
 	if t.LockTimeout.String() != "0s" {
-		command = append(command, "-lock-timeout=" + t.LockTimeout.String())
+		command = append(command, "-lock-timeout="+t.LockTimeout.String())
 	}
 
 	if t.NoColor {
@@ -131,7 +154,7 @@ func (t Plan) BuildCommand() []string {
 	}
 
 	if t.Out != "" {
-		command = append(command, "-out=" + t.Out)
+		command = append(command, "-out="+t.Out)
 	}
 
 	if t.Parallelism != 10 {
@@ -143,24 +166,24 @@ func (t Plan) BuildCommand() []string {
 	}
 
 	if t.State != "" {
-		command = append(command, "-state=" + t.State)
+		command = append(command, "-state="+t.State)
 	}
 
 	if !t.Targets.Empty() {
 		for _, v := range t.Targets.Options {
-			command = append(command, "-target=" + v)
+			command = append(command, "-target="+v)
 		}
 	}
 
 	if !t.Vars.Empty() {
 		for _, v := range t.Vars.Options {
-			command = append(command, "-var '" + v + "'")
+			command = append(command, "-var '"+v+"'")
 		}
 	}
 
 	if !t.VarFiles.Empty() {
 		for _, v := range t.VarFiles.Options {
-			command = append(command, "-var-file=" + v)
+			command = append(command, "-var-file="+v)
 		}
 	}
 
