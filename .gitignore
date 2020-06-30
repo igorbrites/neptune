@@ -22,6 +22,10 @@
 /vendor/
 /Godeps/
 /plans/
+/.terraform/
 neptune
+*.backup
+*.tf
+*.tfstate
 
 # End of https://www.toptal.com/developers/gitignore/api/go
