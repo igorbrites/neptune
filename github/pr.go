@@ -28,6 +28,11 @@ type TemplateInput struct {
 }
 
 func (pr *PullRequest) Comment(plan terraform.Plan) {
+	if pr.Number <= 0 {
+		fmt.Println("Skipping GitHub comment...")
+		return
+	}
+
 	comment := pr.GenerateCommentText(plan)
 
 	_, _, err := pr.GetService().CreateComment(context.Background(), pr.Owner, pr.Repo, pr.Number, comment)

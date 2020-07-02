@@ -16,12 +16,11 @@ func main() {
 	parseFlags(&plan, &pr)
 
 	plan.Run()
-
 	fmt.Println(plan.Output)
-
 	pr.Comment(plan)
 
 	if plan.Type == terraform.Error {
+		fmt.Println(plan.Error)
 		os.Exit(1)
 	}
 }
