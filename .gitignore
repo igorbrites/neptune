@@ -22,6 +22,7 @@
 /vendor/
 /Godeps/
 /plans/
+/dist/
 /.terraform/
 neptune
 *.backup
