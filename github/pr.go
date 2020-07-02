@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
-	"runtime"
 	"text/template"
 
 	"github.com/google/go-github/github"
@@ -15,17 +13,23 @@ import (
 )
 
 type PullRequest struct {
-	Owner string
-	Repo string
+	Owner  string
+	Repo   string
 	Number int
 }
 
 type TemplateInput struct {
-	Folder string
-	Output string
-	Template string
+	Folder    string
+	Output    string
+	Template  string
 	Workspace string
 }
+
+const (
+	errorTemplate     = ":rotating_light: There was an error running plan on directory `{{.Folder}}`, using workspace `{{.Workspace}}`:\n```\n{{.Output}}\n```"
+	noChangesTemplate = ":heavy_check_mark: No changes found on directory `{{.Folder}}`, using workspace `{{.Workspace}}`!"
+	planTemplate      = ":heavy_check_mark: Here is the plan for directory `{{.Folder}}`, using workspace `{{.Workspace}}`:\n\n<details><summary>:warning: Click here to show the plan fully</summary>\n\n```diff\n{{.Output}}\n```\n</details>"
+)
 
 func (pr *PullRequest) Comment(plan terraform.Plan) {
 	if pr.Number <= 0 {
@@ -47,23 +51,21 @@ func (pr *PullRequest) GenerateCommentText(plan terraform.Plan) *github.IssueCom
 	var comment string
 	folder, _ := os.Getwd()
 	tmpl := TemplateInput{
-		Folder: folder,
-		Template: "no-changes.tmpl",
+		Folder:    folder,
+		Template:  noChangesTemplate,
 		Workspace: plan.Workspace,
 	}
 
 	if plan.Type == terraform.Error {
-		tmpl.Template = "error.tmpl"
+		tmpl.Template = errorTemplate
 		tmpl.Output = plan.ProcessedError()
 	} else if plan.Type == terraform.Changed {
-		tmpl.Template = "plan.tmpl"
+		tmpl.Template = planTemplate
 		tmpl.Output = plan.ProcessedOutput()
 	}
 
-	_, filename, _, _ := runtime.Caller(1)
-
 	var b bytes.Buffer
-	t, _ := template.New(tmpl.Template).ParseFiles(path.Join(path.Dir(filename), tmpl.Template))
+	t, _ := template.New("comment").Parse(tmpl.Template)
 	err := t.Execute(&b, tmpl)
 	if err != nil {
 		panic(err)
