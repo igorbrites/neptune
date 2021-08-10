@@ -1,12 +1,13 @@
 # Neptune
 
-![GoBuild](https://github.com/igorbrites/neptune/workflows/GoBuild/badge.svg) ![GoReleaser](https://github.com/igorbrites/neptune/workflows/GoReleaser/badge.svg)
+
+![GoBuild](https://github.com/ContaAzul/neptune/workflows/GoBuild/badge.svg) ![GoReleaser](https://github.com/ContaAzul/neptune/workflows/GoReleaser/badge.svg)
 
 Neptune runs plans with Terraform and posts its results on Pull Requests on GitHub (very specific, huh?).
 
 ## Installing
 
-Go check the [releases](https://github.com/igorbrites/neptune/releases) to get the latest version for your OS.
+Go check the [releases](https://github.com/ContaAzul/neptune/releases) to get the latest version for your OS.
 
 ## Using
 
@@ -23,5 +24,5 @@ So, you can simply change the `terraform plan` by `neptune`, adding the flags to
 # From:
 terraform plan -out=terraform.tfplan -var-file=terraform.tfvars -input=false
 # To:
-neptune -out=terraform.tfplan -var-file=terraform.tfvars -input=false -owner=igorbrites -repo=neptune -pr-number=1
+neptune -out=terraform.tfplan -var-file=terraform.tfvars -input=false -owner=ContaAzul -repo=neptune -pr-number=1
 ```
